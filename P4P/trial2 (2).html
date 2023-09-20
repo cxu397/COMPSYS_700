@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/two.js/0.8.11/two.min.js"></script>
+</head>
+
+<body>
+    <script>
+        var params = {
+            fullscreen: true
+        };
+        var elem = document.body;
+        var two = new Two(params).appendTo(elem);
+
+        var rect = two.makeRectangle(two.width / 2, two.height / 2 - 200);
+        var rect1 = two.makeRectangle(two.width / 2 - 300, two.height / 2);
+        var rect2 = two.makeRectangle(two.width / 2 - 100, two.height / 2);
+        var rect3 = two.makeRectangle(two.width / 2 + 100, two.height / 2);
+        var rect4 = two.makeRectangle(two.width / 2 + 300, two.height / 2);
+        var rect5 = two.makeRectangle(two.width / 2 - 300, two.height / 2 + 200);
+        var rect6 = two.makeRectangle(two.width / 2 - 100, two.height / 2 + 200);
+        var rect7 = two.makeRectangle(two.width / 2 + 100, two.height / 2 + 200);
+        var rect8 = two.makeRectangle(two.width / 2 + 300, two.height / 2 + 200);
+
+        var rectangles = [rect, rect1, rect2, rect3, rect4, rect5, rect6, rect7, rect8];
+
+        rectangles.forEach(rectangle => rectangle.noStroke());
+
+        function drawDetailsForRectangle(rectangle) {
+            var x = rectangle.translation.x;
+            var y = rectangle.translation.y;
+
+            rectangle.line1 = two.makeLine(x - 50, y - 50, x + 50, y + 50);
+            rectangle.line2 = two.makeLine(x - 50, y + 50, x + 50, y - 50);
+            rectangle.line7 = two.makeLine(x, y - 50, x, y + 50);
+            rectangle.line8 = two.makeLine(x - 50, y, x + 50, y);
+
+            rectangle.line3 = two.makeLine(x - 50, y - 50, x + 50, y - 50);
+            rectangle.line4 = two.makeLine(x - 50, y + 50, x + 50, y + 50);
+            rectangle.line5 = two.makeLine(x - 50, y - 50, x - 50, y + 50);
+            rectangle.line6 = two.makeLine(x + 50, y - 50, x + 50, y + 50);
+
+            const lines = [rectangle.line1, rectangle.line2, rectangle.line7, rectangle.line8, rectangle.line3, rectangle.line4, rectangle.line5, rectangle.line6];
+            lines.forEach(line => {
+                line.stroke = 'black';
+                line.visible = false; // initially set all lines to invisible
+            });
+        }
+
+        function generateRandomPattern(rectangle) {
+            let lines = ['line1', 'line2', 'line7', 'line8', 'line3', 'line4', 'line5', 'line6'];
+            let numOfVisibleLines = 3;
+
+            for (let i = 0; i < numOfVisibleLines; i++) {
+                let randomIndex = Math.floor(Math.random() * lines.length);
+                rectangle[lines.splice(randomIndex, 1)[0]].visible = true; // make the selected line visible
+            }
+        }
+
+        function rectangleStateToString(rectangle) {
+            return ['line1', 'line2', 'line7', 'line8', 'line3', 'line4', 'line5', 'line6']
+                .map(line => rectangle[line].visible ? '1' : '0')
+                .join('');
+        }
+
+        const generatedEnhancedPatterns = []; // This will store our generated patterns
+
+        function enhancePattern(rectangle, originalRect) {
+            let isUnique = false;
+
+            while (!isUnique) {
+                ['line1', 'line2', 'line7', 'line8', 'line3', 'line4', 'line5', 'line6'].forEach(line => {
+                    if (originalRect[line].visible) {
+                        rectangle[line].visible = true;
+                        rectangle[line].stroke = 'blue'; // set the stroke color to blue
+                    } else {
+                        if (Math.random() < 0.5) {
+                            rectangle[line].visible = true;
+                            rectangle[line].stroke = 'blue'; // set the stroke color to blue
+                        } else {
+                            rectangle[line].visible = false;
+                        }
+                    }
+                });
+
+                const currentState = rectangleStateToString(rectangle);
+
+                // If this state hasn't been generated before, it's unique!
+                if (!generatedEnhancedPatterns.includes(currentState)) {
+                    generatedEnhancedPatterns.push(currentState);
+                    isUnique = true;
+                }
+            }
+        }
+
+    function notCorrectPatterns(rectangle, originalRect) {
+        const allLines = ['line1', 'line2', 'line7', 'line8', 'line3', 'line4', 'line5', 'line6'];
+
+        // Get the lines from the original rectangle that are visible
+        let originalVisibleLines = allLines.filter(line => originalRect[line].visible);
+
+        let visibleLines;
+        let hiddenLines;
+        let validPattern = false;
+
+        while (!validPattern) {
+            visibleLines = [...originalVisibleLines];
+            hiddenLines = allLines.filter(line => !originalRect[line].visible);
+
+            // Randomly add or remove lines
+            for (let i = 0; i < Math.random() * (originalVisibleLines.length / 2) + 1; i++) {
+                if (Math.random() < 0.5 && visibleLines.length > 3) {
+                    let removeIndex = Math.floor(Math.random() * visibleLines.length);
+                    let removedLine = visibleLines.splice(removeIndex, 1)[0];
+                    hiddenLines.push(removedLine);
+                } else if (hiddenLines.length > 0) {
+                    let addIndex = Math.floor(Math.random() * hiddenLines.length);
+                    let addedLine = hiddenLines.splice(addIndex, 1)[0];
+                    visibleLines.push(addedLine);
+                }
+            }
+
+            // Validate against the rules
+            let missingFromOriginal = originalVisibleLines.filter(line => !visibleLines.includes(line));
+            let newFromHidden = visibleLines.filter(line => !originalVisibleLines.includes(line));
+
+            validPattern = (missingFromOriginal.length >= 1) && (newFromHidden.length >= 1);
+        }
+
+        // Apply the updated pattern to the rectangle
+            allLines.forEach(line => {
+                rectangle[line].visible = visibleLines.includes(line);
+                if (rectangle[line].visible) {
+                    rectangle[line].stroke = 'red'; // set the stroke color to red
+                }
+            });
+        }
+
+
+
+        rectangles.forEach(rectangle => {
+            drawDetailsForRectangle(rectangle);
+        });
+
+        generateRandomPattern(rect);
+
+        // Use Set for enhanced rectangles as it ensures uniqueness
+        let enhancedRects = new Set();
+
+        // Ensure one rectangle is enhanced
+        let firstEnhancedRect;
+        do {
+            firstEnhancedRect = rectangles[Math.floor(Math.random() * rectangles.length)];
+        } while (firstEnhancedRect === rect);
+        enhancedRects.add(firstEnhancedRect);
+
+        // Ensure one rectangle is incorrect
+        let firstIncorrectRect;
+        do {
+            firstIncorrectRect = rectangles[Math.floor(Math.random() * rectangles.length)];
+        } while (firstIncorrectRect === rect || enhancedRects.has(firstIncorrectRect));
+        notCorrectPatterns(firstIncorrectRect, rect);
+
+        // Decide for the rest of the rectangles
+        rectangles.forEach(rectangle => {
+            if (rectangle !== rect && !enhancedRects.has(rectangle) && rectangle !== firstIncorrectRect) {
+                if (Math.random() < 0.5) {
+                    enhancedRects.add(rectangle);
+                } else {
+                    notCorrectPatterns(rectangle, rect);
+                }
+            }
+        });
+
+        enhancedRects.forEach(rectangle => {
+            enhancePattern(rectangle, rect);
+        });
+
+        two.update();
+    </script>
+</body>
+
+</html>

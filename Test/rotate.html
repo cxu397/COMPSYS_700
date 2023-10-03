@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Mental Rotation</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+    }
+  </style>
+</head>
+<body>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/110/three.min.js"></script>
+  <script src="https://threejs.org/examples/fonts/helvetiker_regular.typeface.json"></script>
+  <script>
+    
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    let originalShape;
+    let shape1;
+    let shape2;
+    let shape3;
+    let shape4;
+    let correctShapes = [];
+    let feedbackTextMesh;
+    let questionCounter = 1; // Initialize the question counter
+    let questionTextMesh;
+
+    createShapes();
+
+    camera.position.set(0, 0, 40);
+    camera.lookAt(scene.position);
+
+    renderer.render(scene, camera);
+
+    const selectedShapes = [];
+
+    addClickListener();
+    displayQuestionNumber(); // Display the current question number
+
+    function areAllBlocksVisible(shape, minVisibleFraction = 0.2) {
+    const frustum = new THREE.Frustum();
+    frustum.setFromMatrix(new THREE.Matrix4().multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse));
+
+    let visibleCount = 0;
+    let totalBlocks = 0;
+
+    for (let child of shape.children) {
+        if (child instanceof THREE.Mesh) {
+            totalBlocks++;
+            const boundingBox = new THREE.Box3().setFromObject(child);
+            
+            const min = boundingBox.min;
+            const max = boundingBox.max;
+
+            const vertices = [
+                new THREE.Vector3(min.x, min.y, min.z),
+                new THREE.Vector3(min.x, min.y, max.z),
+                new THREE.Vector3(min.x, max.y, min.z),
+                new THREE.Vector3(min.x, max.y, max.z),
+                new THREE.Vector3(max.x, min.y, min.z),
+                new THREE.Vector3(max.x, min.y, max.z),
+                new THREE.Vector3(max.x, max.y, min.z),
+                new THREE.Vector3(max.x, max.y, max.z)
+            ];
+            
+            let insideCount = 0;
+            for (let vertex of vertices) {
+                if (frustum.containsPoint(vertex)) {
+                    insideCount++;
+                }
+            }
+            
+            if (insideCount / vertices.length >= minVisibleFraction) {
+                visibleCount++;
+            }
+        }
+    }
+
+    console.log("Visible blocks: ", visibleCount, "/", totalBlocks);
+    return visibleCount === totalBlocks;
+}
+
+
+
+
+
+    function displayQuestionNumber() {
+        if (questionTextMesh) {
+            scene.remove(questionTextMesh);
+        }
+
+        const loader = new THREE.FontLoader();
+        loader.load('https://threejs.org/examples/fonts/helvetiker_regular.typeface.json', function (font) {
+            const geometry = new THREE.TextGeometry("Question: " + questionCounter, {
+                font: font,
+                size: 1,
+                height: 0.1,
+                curveSegments: 12,
+                bevelEnabled: false
+            });
+            const material = new THREE.MeshBasicMaterial({ color: 0xffffff });
+            questionTextMesh = new THREE.Mesh(geometry, material);
+            questionTextMesh.position.set(-3, 12, 0);
+            scene.add(questionTextMesh);
+            renderer.render(scene, camera);
+        });
+    }
+
+    function displayFeedback(message) {
+        if (feedbackTextMesh) {
+            scene.remove(feedbackTextMesh);
+        }
+
+        const loader = new THREE.FontLoader();
+        loader.load('https://threejs.org/examples/fonts/helvetiker_regular.typeface.json', function (font) {
+            const geometry = new THREE.TextGeometry(message, {
+                font: font,
+                size: 1,
+                height: 0.1,
+                curveSegments: 12,
+                bevelEnabled: false
+            });
+            const material = new THREE.MeshBasicMaterial({ color: 0xffffff });
+            feedbackTextMesh = new THREE.Mesh(geometry, material);
+            feedbackTextMesh.position.set(-8, 10, 10);
+            scene.add(feedbackTextMesh);
+            renderer.render(scene, camera);
+        });
+    }
+
+    function onDocumentClick(event) {
+    document.removeEventListener('click', onDocumentClick, false);
+
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+    raycaster.setFromCamera(mouse, camera);
+
+    const intersects = raycaster.intersectObjects(scene.children, true);
+
+    if (intersects.length > 0) {
+        let selectedShape = intersects[0].object;
+
+        while (selectedShape.parent !== scene) {
+            selectedShape = selectedShape.parent;
+        }
+
+        if (selectedShape.userData.id !== 'original' && !selectedShapes.includes(selectedShape.userData.id)) {
+            selectedShapes.push(selectedShape.userData.id);
+            selectedShape.children.forEach(child => child.material.color.setHex(0x00ff00));
+        }
+    }
+
+    if (selectedShapes.length === 2) {
+        questionCounter++; // Increment the question counter
+        displayQuestionNumber(); // Update the displayed question number
+
+        if (selectedShapes.every(id => correctShapes.includes(id))) {
+            displayFeedback('Correct shapes selected!');
+        } else {
+            displayFeedback('Incorrect selection. Try again!');
+        }
+
+        createShapes();
+        addClickListener();
+    } else {
+        addClickListener();
+    }
+}
+
+
+    function getRotationFactor() {
+        return (questionCounter * 0.2) % Math.PI;
+    }
+
+    function getSetRotation() {
+        const baseRotation = Math.random() * Math.PI;
+        const factor = getRotationFactor();
+        return baseRotation + factor;
+    }
+
+
+
+    function addClickListener() {
+      document.addEventListener('click', onDocumentClick, false);
+    }
+
+    function createShapes() {
+      if (originalShape) {
+        scene.remove(originalShape);
+        scene.remove(shape1);
+        scene.remove(shape2);
+        scene.remove(shape3);
+        scene.remove(shape4);
+
+        selectedShapes.length = 0;
+      }
+      
+   
+        
+        const MAX_CLONE_ATTEMPTS = 50;
+        let cloneAttempts = 0;
+        let areClonesVisible = false;
+
+        while (!areClonesVisible && cloneAttempts < MAX_CLONE_ATTEMPTS) {
+            originalShape = generateVisibleShape();
+            originalShape.userData.id = 'original';
+
+            shape1 = originalShape.clone();
+            shape1.rotation.set(getSetRotation(), getSetRotation(), getSetRotation());
+            shape1.userData.id = 'clone1';
+
+            shape2 = originalShape.clone();
+            shape2.rotation.set(getSetRotation(), getSetRotation(), getSetRotation());
+            shape2.userData.id = 'clone2';
+
+            if (areAllBlocksVisible(shape1) && areAllBlocksVisible(shape2)) {
+                areClonesVisible = true;
+                console.error("Clones visible");
+            }
+
+            cloneAttempts++;
+        }
+
+        if (cloneAttempts === MAX_CLONE_ATTEMPTS) {
+            console.error("Max clone attempts reached. The clones might not be fully visible.");
+        }
+
+        shape3 = generateVisibleShape();
+        shape3.userData.id = 'different1';
+
+        shape4 = generateVisibleShape();
+        shape4.userData.id = 'different2';
+
+        correctShapes = ['clone1', 'clone2'];
+
+
+
+
+      [shape1, shape2, shape3, shape4] = shuffle([shape1, shape2, shape3, shape4]);
+
+      originalShape.position.set(0, 5, 0);
+      shape1.position.set(-15, -7, 0);
+      shape2.position.set(-4, -7, 0);
+      shape3.position.set(4, -7, 0);
+      shape4.position.set(15, -7, 0);
+
+      scene.add(originalShape);
+      scene.add(shape1);
+      scene.add(shape2);
+      scene.add(shape3);
+      scene.add(shape4);
+
+      renderer.render(scene, camera);
+    }
+
+    function generateVisibleShape() {
+        let shape;
+        let attempts = 0;
+        const MAX_ATTEMPTS = 50;
+        
+        while (!shape || (!areAllBlocksVisible(shape) && attempts < MAX_ATTEMPTS)) {
+            shape = createContinuousShape();
+            attempts++;
+        }
+
+        if (attempts === MAX_ATTEMPTS) {
+            console.error("Max attempts reached. The shape might not be fully visible.");
+        }
+        
+        return shape;
+    }
+
+
+    function createBlock(geometry, material, materialEdges) {
+      const block = new THREE.Mesh(geometry, material);
+      const blockEdges = new THREE.LineSegments(new THREE.EdgesGeometry(geometry), materialEdges);
+      block.add(blockEdges);
+      return block;
+    }
+
+    function createContinuousShape() {
+      const figure = new THREE.Object3D();
+      const colors = [
+        0xFF0000, // Red
+        0x00FF00, // Green
+        0x0000FF, // Blue
+        0xFFFF00, // Yellow
+        0xFF00FF, // Magenta
+        0x00FFFF, // Cyan
+        0xFFFFFF, // White
+        0x800000, // Maroon
+        0x008000, // DarkGreen
+        0x000080, // DarkBlue
+        0x808000, // Olive
+        0x800080  // Purple
+      ];
+
+      const rotationDirections = ['x', 'y', 'z'];
+
+      let currentPosition = [0, 0, 0];
+      let currentDirection = [1, 0, 0];
+      let currentRotation = 'y';
+      let straightStretch = Math.floor(Math.random() * 2) + 1;
+      let numBlocks = Math.floor(Math.random() * 3) + 8;
+
+      for (let i = 0; i < numBlocks; i++) {
+        const geometry = new THREE.BoxGeometry(1, 1, 1);
+        const material = new THREE.MeshBasicMaterial({ color: colors[i % colors.length]});
+        const materialEdges = new THREE.LineBasicMaterial({ color: 0x000000 });
+        const block = createBlock(geometry, material, materialEdges);
+
+        block.position.set(...currentPosition);
+        figure.add(block);
+
+        currentPosition = currentPosition.map((pos, index) => pos + currentDirection[index]);
+
+        if ((i+1) % straightStretch === 0) {
+          currentRotation = rotationDirections[(rotationDirections.indexOf(currentRotation) + 1) % rotationDirections.length];
+          currentDirection = rotateVector(currentDirection, currentRotation);
+          straightStretch = Math.floor(Math.random() * 2) + 1;
+        }
+      }
+
+      figure.rotation.set(getSetRotation(), getSetRotation(), getSetRotation());
+
+      return figure;
+    }
+
+    function rotateVector(vector, axis) {
+      const rotationMatrix = {
+        x: [[1, 0, 0], [0, 0, -1], [0, 1, 0]],
+        y: [[0, 0, 1], [0, 1, 0], [-1, 0, 0]],
+        z: [[0, -1, 0], [1, 0, 0], [0, 0, 1]]
+      };
+
+      return matrixMultiply(rotationMatrix[axis], vector);
+    }
+
+    function matrixMultiply(matrix, vector) {
+      return matrix.map(row => row.reduce((sum, val, i) => sum + val * vector[i], 0));
+    }
+
+    function shuffle(array) {
+      var currentIndex = array.length, temporaryValue, randomIndex;
+
+      while (0 !== currentIndex) {
+        randomIndex = Math.floor(Math.random() * currentIndex);
+        currentIndex -= 1;
+
+        temporaryValue = array[currentIndex];
+        array[currentIndex] = array[randomIndex];
+        array[randomIndex] = temporaryValue;
+      }
+
+      return array;
+    }
+
+    
+
+  </script>
+</body>
+</html>

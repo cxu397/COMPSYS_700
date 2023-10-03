@@ -109,26 +109,28 @@ function onMouseClick(event) {
   raycaster.setFromCamera(mouse, camera);
   const intersects = raycaster.intersectObjects(highlightedMeshes);
 
-  // Check if cube was clicked
-  for (const intersect of intersects) {
-    if (intersect.object === highlightedMeshes[0]) {
-      highlightedCubes.shift();
-      highlightedMeshes.shift();
+  if (intersects.length === 0) {
+    // If no highlighted cube was clicked, reset the game
+    resetGame();
+    return;
+  }
 
-      if (highlightedCubes.length === 0) {
-        // If all the highlighted cubes have been clicked, increase the level
-        level++;
-        highlightedCubes.length = 0;
-        highlightedMeshes.length = 0;
+  // Check if the first highlighted cube was clicked
+  if (intersects[0].object === highlightedMeshes[0]) {
+    highlightedCubes.shift();
+    highlightedMeshes.shift();
 
-        highlightCubes();
-      }
-    } else {
-      // The clicked cube is incorrect, reset the game
-      resetGame();
+    if (highlightedCubes.length === 0) {
+      // If all the highlighted cubes have been clicked, increase the level
+      level++;
+      highlightCubes();
     }
+  } else {
+    // The clicked cube is incorrect, reset the game
+    resetGame();
   }
 }
+
 
 function resetGame() {
   level = 1; // Reset the level to 1

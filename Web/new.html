@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mental Rotation Test</title>
+    <script src="https://threejs.org/build/three.js"></script>
+    <script src="https://threejs.org/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+    <script type="text/javascript">
+        // Create the WebGL Scene
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        // Create the Snake-like Shape
+        const geometry = new THREE.BoxGeometry(1, 1, 1);
+        const material = new THREE.MeshBasicMaterial({ color: 0x00ff00, wireframe: true });
+        const snakeShape = new THREE.Group();
+        const positions = [
+            { x: 0, y: 0, z: 0 },
+            { x: 1, y: 0, z: 0 },
+            { x: 1, y: 1, z: 0 },
+            { x: 1, y: 2, z: 0 },
+            { x: 2, y: 2, z: 0 },
+            { x: 2, y: 1, z: 0 }
+        ];
+        positions.forEach(pos => {
+            const cube = new THREE.Mesh(geometry, material);
+            cube.position.set(pos.x, pos.y, pos.z);
+            snakeShape.add(cube);
+        });
+        scene.add(snakeShape);
+
+        // Create Four Option Shapes
+        const optionShapes = [];
+        for (let i = 0; i < 4; i++) {
+            const option = snakeShape.clone();
+            option.position.x = (i - 1.5) * 5;
+            scene.add(option);
+            optionShapes.push(option);
+        }
+
+        // Randomly Rotate the Options
+        optionShapes.forEach((option, index) => {
+            if (index === 0) return; // Keep the first option as the correct one
+            option.rotation.x = Math.random() * 2 * Math.PI;
+            option.rotation.y = Math.random() * 2 * Math.PI;
+        });
+
+        // Add Controls
+        const controls = new THREE.OrbitControls(snakeShape, renderer.domElement);
+        controls.enablePan = false;
+        controls.enableZoom = false;
+
+        // Position the Camera and Render
+        camera.position.z = 10;
+        function animate() {
+            requestAnimationFrame(animate);
+            renderer.render(scene, camera);
+        }
+        animate();
+    </script>
+</body>
+</html>

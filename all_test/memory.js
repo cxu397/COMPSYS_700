@@ -110,8 +110,8 @@ function onMouseClick(event) {
   const intersects = raycaster.intersectObjects(highlightedMeshes);
 
   if (intersects.length === 0) {
-    // If no highlighted cube was clicked, reset the game
-    resetGame();
+    // If no highlighted cube was clicked, reset the level
+    resetLevel();
     return;
   }
 
@@ -126,13 +126,13 @@ function onMouseClick(event) {
       highlightCubes();
     }
   } else {
-    // The clicked cube is incorrect, reset the game
-    resetGame();
+    // The clicked cube is incorrect, reset the level
+    resetLevel();
   }
 }
 
 
-function resetGame() {
+function resetLevel() {
   level = 1; // Reset the level to 1
   highlightedCubes.length = 0; // Clear the highlighted cubes array
   highlightedMeshes.length = 0; // Clear the highlighted meshes array
@@ -142,7 +142,7 @@ function resetGame() {
     cube.children[0].material.color.set(0xffffff);
   }
 
-  highlightCubes(); // Start a new game
+  highlightCubes(); // Start a new level
 }
 
 document.addEventListener('click', onMouseClick);
@@ -155,6 +155,6 @@ function animate() {
 // Position camera
 camera.position.z = 5;
 
-highlightCubes(); // Start the game by highlighting one cube
+highlightCubes(); // Start the level by highlighting one cube
 
 animate();

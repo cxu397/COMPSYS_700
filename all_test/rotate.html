@@ -43,52 +43,71 @@
     addClickListener();
     displayQuestionNumber(); // Display the current question number
 
-    function areAllBlocksVisible(shape, minVisibleFraction = 0.2) {
-    const frustum = new THREE.Frustum();
-    frustum.setFromMatrix(new THREE.Matrix4().multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse));
+    function areAllBlocksVisible(shape, minVisibleFraction = 0.5) {
+      const frustum = new THREE.Frustum();
+      frustum.setFromMatrix(new THREE.Matrix4().multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse));
 
-    let visibleCount = 0;
-    let totalBlocks = 0;
+      let visibleCount = 0;
+      let totalBlocks = 0;
 
-    for (let child of shape.children) {
-        if (child instanceof THREE.Mesh) {
-            totalBlocks++;
-            const boundingBox = new THREE.Box3().setFromObject(child);
-            
-            const min = boundingBox.min;
-            const max = boundingBox.max;
+      for (let child of shape.children) {
+          if (child instanceof THREE.Mesh) {
+              totalBlocks++;
+              const boundingBox = new THREE.Box3().setFromObject(child);
+              
+              const min = boundingBox.min;
+              const max = boundingBox.max;
 
-            const vertices = [
-                new THREE.Vector3(min.x, min.y, min.z),
-                new THREE.Vector3(min.x, min.y, max.z),
-                new THREE.Vector3(min.x, max.y, min.z),
-                new THREE.Vector3(min.x, max.y, max.z),
-                new THREE.Vector3(max.x, min.y, min.z),
-                new THREE.Vector3(max.x, min.y, max.z),
-                new THREE.Vector3(max.x, max.y, min.z),
-                new THREE.Vector3(max.x, max.y, max.z)
-            ];
-            
-            let insideCount = 0;
-            for (let vertex of vertices) {
-                if (frustum.containsPoint(vertex)) {
-                    insideCount++;
-                }
-            }
-            
-            if (insideCount / vertices.length >= minVisibleFraction) {
-                visibleCount++;
-            }
-        }
-    }
+              const vertices = [
+                  new THREE.Vector3(min.x, min.y, min.z),
+                  new THREE.Vector3(min.x, min.y, max.z),
+                  new THREE.Vector3(min.x, max.y, min.z),
+                  new THREE.Vector3(min.x, max.y, max.z),
+                  new THREE.Vector3(max.x, min.y, min.z),
+                  new THREE.Vector3(max.x, min.y, max.z),
+                  new THREE.Vector3(max.x, max.y, min.z),
+                  new THREE.Vector3(max.x, max.y, max.z)
+              ];
+              
+              let insideCount = 0;
+              for (let vertex of vertices) {
+                  if (frustum.containsPoint(vertex)) {
+                      insideCount++;
+                  }
+              }
+              
+              if (insideCount / vertices.length >= minVisibleFraction) {
+                  visibleCount++;
+              }
+          }
+      }
 
     console.log("Visible blocks: ", visibleCount, "/", totalBlocks);
     return visibleCount === totalBlocks;
 }
 
+function euclideanDistance(p1, p2) {
+    return Math.sqrt((p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2 + (p1.z - p2.z) ** 2);
+}
 
+function maxVertexDistance(shape1, shape2) {
+    let maxDist = 0;
+    if (!shape1 || !shape1.vertices || !shape2 || !shape2.vertices) {
+        return 0;
+    }
 
+    for(let i = 0; i < shape1.children.length; i++) {
+        let vertex1 = shape1.children[i].position;
+        let vertex2 = shape2.children[i].position;
 
+        let dist = euclideanDistance(vertex1, vertex2);
+        if(dist > maxDist) {
+            maxDist = dist;
+        }
+    }
+
+    return maxDist;
+}
 
     function displayQuestionNumber() {
         if (questionTextMesh) {
@@ -235,15 +254,30 @@
             console.error("Max clone attempts reached. The clones might not be fully visible.");
         }
 
-        shape3 = generateVisibleShape();
-        shape3.userData.id = 'different1';
+        let shapeGenerated = false;
+        const DISTANCE_THRESHOLD = 1.5;
+        let maxAttempts = 5;
+        for (let i = 0; i < maxAttempts; i++) {
+            shape3 = generateVisibleShape();
+            shape3.userData.id = 'different1';
+            if (maxVertexDistance(originalShape, shape3) >= DISTANCE_THRESHOLD) {
+                shapeGenerated = true;
+                break;
+            }
+        }
 
-        shape4 = generateVisibleShape();
-        shape4.userData.id = 'different2';
+        shapeGenerated = false;
+
+        for (let i = 0; i < maxAttempts; i++) {
+            shape4 = generateVisibleShape();
+            shape4.userData.id = 'different2';
+            if (maxVertexDistance(originalShape, shape4) >= DISTANCE_THRESHOLD) {
+                shapeGenerated = true;
+                break;
+            }
+        }
 
         correctShapes = ['clone1', 'clone2'];
-
-
 
 
       [shape1, shape2, shape3, shape4] = shuffle([shape1, shape2, shape3, shape4]);

@@ -76,7 +76,7 @@ function generatePatternCanvasForFace(faceIndex) {
     context.fillStyle = 'white';
     context.fillRect(0, 0, canvas.width, canvas.height);
     context.strokeStyle = 'black';
-    context.lineWidth = 2;
+    context.lineWidth = 5;
 
     generatePatternForContext(context, patternsCountForFaces[faceIndex], []);
     
@@ -92,24 +92,18 @@ function updateCubePattern(cube) {
     }
     renderer.render(scene, camera);
 }
+const aspectRatio = window.innerWidth / (window.innerHeight / 2);
 
-document.getElementById("increaseLevelButton").addEventListener("click", function() {
-    currentLevel++;
-    for (let i = 0; i < 6; i++) {
-        patternsCountForFaces[i]++;
-    }
-    cubes.forEach(cube => updateCubePattern(cube));
-});
 
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(35, window.innerWidth / window.innerHeight, 0.1, 1000);
+const camera = new THREE.PerspectiveCamera(11, aspectRatio, 0.1, 1000);
 camera.position.x = 8;
 camera.position.y = 8;
 camera.position.z = 8;
 camera.lookAt(scene.position);
 
 const renderer = new THREE.WebGLRenderer();
-renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setSize(window.innerWidth, window.innerHeight/2);
 document.body.appendChild(renderer.domElement);
 
 const buttons = [];
@@ -121,14 +115,12 @@ for (let i = 0; i < 4; i++) {
     buttons.push(button);
 }
 
-
-
 const geometry = new THREE.BoxGeometry();
 const cubePositions = [
-    { x: -3, y: 1.5, z: 2 },
-    { x: -1, y: 1.5, z: 0  },
-    { x: 1, y: 1.5, z: -2 },
-    { x: 3, y: 1.5, z: -4 }
+    { x: -3.5, y: -0.2, z: 2 },
+    { x: -1.5, y: -0.2, z: 0  },
+    { x: 0.5, y: -0.2, z: -2 },
+    { x: 2.5, y: -0.2, z: -4 }
 ];
 
 const cubes = [];
@@ -165,13 +157,14 @@ cubes.forEach(cube => updateCubePattern(cube));
 
 renderer.render(scene, camera);
 
+const netScaleFactor = 0.5;
 
 function generate2DNetForRandomCube() {
     // Select a random cube from the list
     const randomCube = cubes[Math.floor(Math.random() * cubes.length)];
 
-    const canvasSize = 256 * 4;  // Assuming each face is 256x256 and net layout is 4x3
-    const faceSize = 256;
+    const canvasSize = 256 * 4 * netScaleFactor;  // Assuming each face is 256x256 and net layout is 4x3
+    const faceSize = 256 * netScaleFactor;
 
     // Create a canvas for the net
     const canvas = document.createElement('canvas');
@@ -185,12 +178,12 @@ function generate2DNetForRandomCube() {
 
     // Net layout positions for each face in a cube
     const positions = [
-        { x: faceSize, y: 0 },          // Top
-        { x: 0, y: faceSize },          // Left
-        { x: faceSize, y: faceSize },   // Front
-        { x: faceSize * 2, y: faceSize }, // Right
-        { x: faceSize * 3, y: faceSize }, // Back
-        { x: faceSize, y: faceSize * 2 }  // Bottom
+        { x: faceSize * 2, y: faceSize },  // Right
+        { x: 0, y: faceSize },             // Left
+        { x: faceSize, y: 0 },             // Top
+        { x: faceSize, y: faceSize * 2 },  // Bottom
+        { x: faceSize, y: faceSize },      // Front
+        { x: faceSize * 3, y: faceSize }   // Back
     ];
 
     // Draw each face and its outline
@@ -200,13 +193,63 @@ function generate2DNetForRandomCube() {
 
         // Draw the outline for this face
         context.strokeStyle = 'black';
-        context.lineWidth = 5;  // Adjust as needed
+        context.lineWidth = 5 * netScaleFactor;  
         context.strokeRect(positions[i].x, positions[i].y, faceSize, faceSize);
     }
-
     return { canvas: canvas, cube: randomCube };
 }
 
+function generate2DNetForCube(cube) {
+    const canvasSize = 256 * 4 * netScaleFactor;  // Assuming each face is 256x256 and net layout is 4x3
+    const faceSize = 256 * netScaleFactor;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = canvasSize;
+    canvas.height = canvasSize / 4 * 3; 
+    const context = canvas.getContext('2d');
+    
+    context.fillStyle = 'white';
+    context.fillRect(0, 0, canvas.width, canvas.height);
+
+    const positions = [
+        { x: faceSize * 2, y: faceSize },  // Right
+        { x: 0, y: faceSize },             // Left
+        { x: faceSize, y: 0 },             // Top
+        { x: faceSize, y: faceSize * 2 },  // Bottom
+        { x: faceSize, y: faceSize },      // Front
+        { x: faceSize * 3, y: faceSize }   // Back
+    ];
+
+    for (let i = 0; i < 6; i++) {
+        const faceTexture = cube.material[i].map.image;
+        context.drawImage(faceTexture, positions[i].x, positions[i].y, faceSize, faceSize);
+
+        context.strokeStyle = 'black';
+        context.lineWidth = 5 * netScaleFactor;  
+        context.strokeRect(positions[i].x, positions[i].y, faceSize, faceSize);
+    }
+    return { canvas: canvas, cube: cube };
+}
+
+function generateNetsForAllCubes() {
+    const nets = [];
+
+    for (let cube of cubes) {
+        const net = generate2DNetForCube(cube);
+        nets.push(net);
+    }
+
+    for (let i = 0; i < nets.length; i++) {
+        for (let j = i + 1; j < nets.length; j++) {
+            const net1Data = nets[i].canvas.toDataURL();
+            const net2Data = nets[j].canvas.toDataURL();
+
+            if (net1Data === net2Data) {
+                cubes.forEach(cube => updateCubePattern(cube));
+            }
+        }
+    }
+}
 
 function promptUserSelection() {
     generatedNet = generate2DNetForRandomCube();
@@ -221,7 +264,8 @@ function increaseLevel() {
     cubes.forEach(cube => updateCubePattern(cube));
 }
 
-// Start the game by prompting the user for the first selection
+generateNetsForAllCubes();
+// Start the test by prompting the user for the first selection
 promptUserSelection();
 
 for (let i = 0; i < cubes.length; i++) {
@@ -232,17 +276,20 @@ for (let i = 0; i < cubes.length; i++) {
             alert('Correct!');
             increaseLevel();
         } else {
-            alert('Try again!');
+            alert('Incorrect');
+            increaseLevel();
         }
         document.body.removeChild(generatedNet.canvas);
 
         // Regenerate the net after providing an answer
         promptUserSelection();
+        generateNetsForAllCubes();
+
     });
 }
 window.addEventListener('resize', function() {
     const newWidth = window.innerWidth;
-    const newHeight = window.innerHeight;
+    const newHeight = window.innerHeight/2;
     camera.aspect = newWidth / newHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(newWidth, newHeight);

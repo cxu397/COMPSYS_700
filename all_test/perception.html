@@ -44,6 +44,17 @@
           left: 610px; /* Adjust the left position in pixels */
           width: 800px; /* Adjust the width as needed */
       }
+
+      .counter-container {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        font-size: 20px;
+        font-weight: bold;
+        background-color: rgba(255, 255, 255, 0.8);
+        padding: 5px 10px;
+        border-radius: 5px;
+    }
     </style>
 </head>
 
@@ -55,16 +66,16 @@
         };
         var elem = document.body;
         var two = new Two(params).appendTo(elem);
-
-        var rect = two.makeRectangle(two.width / 2, two.height / 2 - 200);
-        var rect1 = two.makeRectangle(two.width / 2 - 300, two.height / 2);
-        var rect2 = two.makeRectangle(two.width / 2 - 100, two.height / 2);
-        var rect3 = two.makeRectangle(two.width / 2 + 100, two.height / 2);
-        var rect4 = two.makeRectangle(two.width / 2 + 300, two.height / 2);
-        var rect5 = two.makeRectangle(two.width / 2 - 300, two.height / 2 + 200);
-        var rect6 = two.makeRectangle(two.width / 2 - 100, two.height / 2 + 200);
-        var rect7 = two.makeRectangle(two.width / 2 + 100, two.height / 2 + 200);
-        var rect8 = two.makeRectangle(two.width / 2 + 300, two.height / 2 + 200);
+        
+        var rect = two.makeRectangle(two.width / 2, two.height / 2 - 300);
+        var rect1 = two.makeRectangle(two.width / 2 - 300, two.height / 2.5);
+        var rect2 = two.makeRectangle(two.width / 2 - 100, two.height / 2.5);
+        var rect3 = two.makeRectangle(two.width / 2 + 100, two.height / 2.5);
+        var rect4 = two.makeRectangle(two.width / 2 + 300, two.height / 2.5);
+        var rect5 = two.makeRectangle(two.width / 2 - 300, two.height / 2.5 + 200);
+        var rect6 = two.makeRectangle(two.width / 2 - 100, two.height / 2.5 + 200);
+        var rect7 = two.makeRectangle(two.width / 2 + 100, two.height / 2.5 + 200);
+        var rect8 = two.makeRectangle(two.width / 2 + 300, two.height / 2.5 + 200);
 
         var rectangles = [rect, rect1, rect2, rect3, rect4, rect5, rect6, rect7, rect8];
 
@@ -91,9 +102,16 @@
             });
         }
 
-        function generateRandomPattern(rectangle) {
+        var level = 1;
+        function updateLevelCounter() {
+            document.getElementById('level-counter').textContent = level;
+        }
+
+        function generateOriginalPattern(rectangle) {
             let lines = ['line1', 'line2', 'line7', 'line8', 'line3', 'line4', 'line5', 'line6'];
-            let numOfVisibleLines = 3;
+            let numOfVisibleLines = level + 2;
+
+            if (numOfVisibleLines > 5) numOfVisibleLines = 5;
 
             for (let i = 0; i < numOfVisibleLines; i++) {
                 let randomIndex = Math.floor(Math.random() * lines.length);
@@ -180,11 +198,59 @@
             });
         }
 
+    function refreshNext() {
+            // Clear the generated enhanced patterns
+            generatedEnhancedPatterns.length = 0;
+
+            for (let index = 1; index < rectangles.length; index++) {
+                document.getElementById(`checkbox-${index}`).checked = false;
+            }
+            // Hide all lines
+            rectangles.forEach(rectangle => {
+                ['line1', 'line2', 'line7', 'line8', 'line3', 'line4', 'line5', 'line6'].forEach(line => {
+                    rectangle[line].visible = false;
+                });
+            });
+
+            // Generate a new pattern
+            generateOriginalPattern(rect);
+
+            let enhancedRects = new Set();
+            let firstEnhancedRect;
+            do {
+                firstEnhancedRect = rectangles[Math.floor(Math.random() * rectangles.length)];
+            } while (firstEnhancedRect === rect);
+            enhancedRects.add(firstEnhancedRect);
+
+            let firstIncorrectRect;
+            do {
+                firstIncorrectRect = rectangles[Math.floor(Math.random() * rectangles.length)];
+            } while (firstIncorrectRect === rect || enhancedRects.has(firstIncorrectRect));
+            notCorrectPatterns(firstIncorrectRect, rect);
+
+            rectangles.forEach(rectangle => {
+                if (rectangle !== rect && !enhancedRects.has(rectangle) && rectangle !== firstIncorrectRect) {
+                    if (Math.random() < 0.5) {
+                        enhancedRects.add(rectangle);
+                    } else {
+                        notCorrectPatterns(rectangle, rect);
+                    }
+                }
+            });
+
+            enhancedRects.forEach(rectangle => {
+                enhancePattern(rectangle, rect);
+            });
+
+            two.update();
+        }
+
+
         rectangles.forEach(rectangle => {
             drawDetailsForRectangle(rectangle);
         });
 
-        generateRandomPattern(rect);
+        generateOriginalPattern(rect);
 
         // Use Set for enhanced rectangles as it ensures uniqueness
         let enhancedRects = new Set();
@@ -225,28 +291,31 @@
         }
 
         function action() {
-            const enhancedRectangles = Array.from(enhancedRects);
-            let allEnhancedSelected = true;
+    const enhancedRectangles = Array.from(enhancedRects);
+    let allEnhancedSelected = true;
 
-            // We iterate over all rectangles, not just the enhanced ones, to ensure wrong selections are detected.
-            rectangles.forEach(rectangle => {
-                const checkbox = document.getElementById(`checkbox-${rectangles.indexOf(rectangle)}`);
-                if (checkbox.checked && !isRectangleEnhanced(rectangle)) {
-                    allEnhancedSelected = false;  // Incorrect rectangle was selected
-                }
-                if (!checkbox.checked && isRectangleEnhanced(rectangle)) {
-                    allEnhancedSelected = false;  // Enhanced rectangle was not selected
-                }
-            });
+    // Iterate over rectangles, starting from index 1 to exclude Pattern 0
+    for (let index = 1; index < rectangles.length; index++) {
+        const rectangle = rectangles[index];
+        const checkbox = document.getElementById(`checkbox-${index}`);
 
-            if (allEnhancedSelected) {
-                alert("Correct!");
-            } else {
-                alert("Wrong!");
-            }
-            location.reload();
+        if (checkbox.checked && !isRectangleEnhanced(rectangle)) {
+            allEnhancedSelected = false;  // Incorrect rectangle was selected
         }
+        if (!checkbox.checked && isRectangleEnhanced(rectangle)) {
+            allEnhancedSelected = false;  // Enhanced rectangle was not selected
+        }
+    }
 
+    if (allEnhancedSelected) {
+        alert("Correct!");
+    } else {
+        alert("Wrong!");
+    }
+    level++;
+    updateLevelCounter();
+    refreshNext();
+}
       
         
 
@@ -259,37 +328,37 @@
     <div class="button2-container">
         <div class="checkbox-container">
             <label class="checkbox-label">
-                <input type="checkbox" id="checkbox-0"> Rectangle 0
+                <input type="checkbox" id="checkbox-1"> Pattern 1
             </label>
             <label class="checkbox-label">
-                <input type="checkbox" id="checkbox-1"> Rectangle 1
+                <input type="checkbox" id="checkbox-2"> Pattern 2
             </label>
             <label class="checkbox-label">
-                <input type="checkbox" id="checkbox-2"> Rectangle 2
+                <input type="checkbox" id="checkbox-3"> Pattern 3
             </label>
             <label class="checkbox-label">
-                <input type="checkbox" id="checkbox-3"> Rectangle 3
+                <input type="checkbox" id="checkbox-4"> Pattern 4
             </label>
         </div>
         <div class="checkbox-container">
             <label class="checkbox-label">
-                <input type="checkbox" id="checkbox-4"> Rectangle 4
+                <input type="checkbox" id="checkbox-5"> Pattern 5
             </label>
             <label class="checkbox-label">
-                <input type="checkbox" id="checkbox-5"> Rectangle 5
+                <input type="checkbox" id="checkbox-6"> Pattern 6
             </label>
             <label class="checkbox-label">
-                <input type="checkbox" id="checkbox-6"> Rectangle 6
+                <input type="checkbox" id="checkbox-7"> Pattern 7
             </label>
             <label class="checkbox-label">
-                <input type="checkbox" id="checkbox-7"> Rectangle 7
-            </label>
-            <label class="checkbox-label">
-                <input type="checkbox" id="checkbox-8"> Rectangle 8
+                <input type="checkbox" id="checkbox-8"> Pattern 8
             </label>
         </div>
     </div>
-    
+
+    <div class="counter-container">
+        <span>Level: </span><span id="level-counter">1</span>
+    </div>
 
 </body>
 

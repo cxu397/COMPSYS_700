@@ -231,7 +231,7 @@ function generate2DNetForCube(cube) {
     return { canvas: canvas, cube: cube };
 }
 
-function generateNetsForAllCubes() {
+function checkNetsForAllCubes() {
     const nets = [];
 
     for (let cube of cubes) {
@@ -264,7 +264,7 @@ function increaseLevel() {
     cubes.forEach(cube => updateCubePattern(cube));
 }
 
-generateNetsForAllCubes();
+checkNetsForAllCubes();
 // Start the test by prompting the user for the first selection
 promptUserSelection();
 
@@ -283,7 +283,7 @@ for (let i = 0; i < cubes.length; i++) {
 
         // Regenerate the net after providing an answer
         promptUserSelection();
-        generateNetsForAllCubes();
+        checkNetsForAllCubes();
 
     });
 }

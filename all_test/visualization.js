@@ -1,11 +1,13 @@
-let currentLevel = 1;
-let generatedNet;
-let patternsCountForFaces = new Array(6).fill(1);
+let currentLevel = 1; // The current difficulty level of the game.
+let generatedNet;       // A variable to store the 2D representation (net) of selected cube.
+let patternsCountForFaces = new Array(6).fill(1); // An array that represents the number of patterns on each face of a cube. Initially, each face has just 1 pattern.
 
+//Generates a random position within bounds for a pattern.
 function getRandomPosition(radius) {
     return radius + Math.random() * (256 - 2 * radius);
 }
 
+//Checks if a new pattern (circle or line) overlaps with any existing pattern on a canvas face.
 function isOverlapping(newBounds, existingBoundsList) {
     for (let bounds of existingBoundsList) {
         const dx = newBounds.centerX - bounds.centerX;
@@ -18,6 +20,8 @@ function isOverlapping(newBounds, existingBoundsList) {
     return false;
 }
 
+//Generates a specified number of patterns (circle or line) on a given canvas context.
+// Ensures that the patterns do not overlap with any existing patterns.
 function generatePatternForContext(context, patternsCount, existingPatterns) {
     const radius = 50;
 
@@ -67,6 +71,8 @@ function generatePatternForContext(context, patternsCount, existingPatterns) {
     }
 }
 
+//Creates a canvas element, draws patterns on it, and returns the canvas.
+//This is specific to a face of the cube (indexed by faceIndex).
 function generatePatternCanvasForFace(faceIndex) {
     const canvas = document.createElement('canvas');
     canvas.width = 256;
@@ -83,6 +89,8 @@ function generatePatternCanvasForFace(faceIndex) {
     return canvas;
 }
 
+//Updates the patterns on each face of a given 3D cube.
+//It uses a unique canvas pattern for each face and updates the cube's material with the new textures.
 function updateCubePattern(cube) {
     for (let i = 0; i < 6; i++) {
         const patternCanvas = generatePatternCanvasForFace(i);
@@ -92,21 +100,25 @@ function updateCubePattern(cube) {
     }
     renderer.render(scene, camera);
 }
+
+// Calculate the aspect ratio based on the window's width and half its height.
 const aspectRatio = window.innerWidth / (window.innerHeight / 2);
 
-
+// Create a new Three.js scene, perspective camera with a specific field of view, position camera
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(11, aspectRatio, 0.1, 1000);
 camera.position.x = 8;
 camera.position.y = 8;
 camera.position.z = 8;
 camera.lookAt(scene.position);
-
 const renderer = new THREE.WebGLRenderer();
 renderer.setSize(window.innerWidth, window.innerHeight/2);
 document.body.appendChild(renderer.domElement);
 
+// Create an array to hold the button elements.
 const buttons = [];
+
+// Loop 4 times to create 4 buttons.
 for (let i = 0; i < 4; i++) {
     const button = document.createElement('button');
     button.innerText = `Cube ${i + 1}`;
@@ -115,6 +127,8 @@ for (let i = 0; i < 4; i++) {
     buttons.push(button);
 }
 
+// Define the geometry for the cubes (a basic box geometry).
+// Define the positions for each of the cubes in the 3D space.
 const geometry = new THREE.BoxGeometry();
 const cubePositions = [
     { x: -3.5, y: -0.2, z: 2 },
@@ -200,7 +214,7 @@ function generate2DNetForRandomCube() {
 }
 
 function generate2DNetForCube(cube) {
-    const canvasSize = 256 * 4 * netScaleFactor;  // Assuming each face is 256x256 and net layout is 4x3
+    const canvasSize = 256 * 4 * netScaleFactor;  //Each face is 256x256 and net layout is 4x3
     const faceSize = 256 * netScaleFactor;
 
     const canvas = document.createElement('canvas');

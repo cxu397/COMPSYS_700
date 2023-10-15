@@ -64,9 +64,12 @@
         var params = {
             fullscreen: true
         };
+
+        // Create a Two.js instance and attach it to the document's body
         var elem = document.body;
         var two = new Two(params).appendTo(elem);
         
+        // Create a series of rectangles at different positions on the screen
         var rect = two.makeRectangle(two.width / 2, two.height / 2 - 300);
         var rect1 = two.makeRectangle(two.width / 2 - 300, two.height / 2.5);
         var rect2 = two.makeRectangle(two.width / 2 - 100, two.height / 2.5);
@@ -79,8 +82,10 @@
 
         var rectangles = [rect, rect1, rect2, rect3, rect4, rect5, rect6, rect7, rect8];
 
+        // Remove the all strokes from each rectangle
         rectangles.forEach(rectangle => rectangle.noStroke());
 
+        // Function to draw lines on each rectangle
         function drawDetailsForRectangle(rectangle) {
             var x = rectangle.translation.x;
             var y = rectangle.translation.y;
@@ -102,11 +107,13 @@
             });
         }
 
+        // A variable to track the current level
         var level = 1;
         function updateLevelCounter() {
             document.getElementById('level-counter').textContent = level;
         }
 
+        // Function to generate a pattern on a given rectangle based on the current level
         function generateOriginalPattern(rectangle) {
             let lines = ['line1', 'line2', 'line7', 'line8', 'line3', 'line4', 'line5', 'line6'];
             let numOfVisibleLines = level + 2;
@@ -119,6 +126,7 @@
             }
         }
 
+        // Function to convert the visibility state of the lines on a rectangle to a string representation
         function rectangleStateToString(rectangle) {
             return ['line1', 'line2', 'line7', 'line8', 'line3', 'line4', 'line5', 'line6']
                 .map(line => rectangle[line].visible ? '1' : '0')
@@ -215,19 +223,26 @@
             // Generate a new pattern
             generateOriginalPattern(rect);
 
+            
+            
             let enhancedRects = new Set();
+            
+            // Randomly choose a rectangle other than the first one to enhance its pattern
             let firstEnhancedRect;
             do {
                 firstEnhancedRect = rectangles[Math.floor(Math.random() * rectangles.length)];
             } while (firstEnhancedRect === rect);
             enhancedRects.add(firstEnhancedRect);
 
+            // Randomly choose another rectangle that is neither the first one nor the previously chosen enhanced one
+            // This rectangle will receive an incorrect pattern
             let firstIncorrectRect;
             do {
                 firstIncorrectRect = rectangles[Math.floor(Math.random() * rectangles.length)];
             } while (firstIncorrectRect === rect || enhancedRects.has(firstIncorrectRect));
             notCorrectPatterns(firstIncorrectRect, rect);
 
+            // Iterate over the rest of the rectangles and either enhance their pattern or give them incorrect patterns
             rectangles.forEach(rectangle => {
                 if (rectangle !== rect && !enhancedRects.has(rectangle) && rectangle !== firstIncorrectRect) {
                     if (Math.random() < 0.5) {
@@ -242,6 +257,7 @@
                 enhancePattern(rectangle, rect);
             });
 
+            // Update the canvas to reflect the changes
             two.update();
         }
 
@@ -290,35 +306,34 @@
             return generatedEnhancedPatterns.includes(currentState);
         }
 
-        function action() {
-    const enhancedRectangles = Array.from(enhancedRects);
-    let allEnhancedSelected = true;
+    function action() {
+        const enhancedRectangles = Array.from(enhancedRects);
+        let allEnhancedSelected = true;
 
-    // Iterate over rectangles, starting from index 1 to exclude Pattern 0
-    for (let index = 1; index < rectangles.length; index++) {
-        const rectangle = rectangles[index];
-        const checkbox = document.getElementById(`checkbox-${index}`);
+        // Iterate over rectangles, starting from index 1 to exclude Pattern 0
+        for (let index = 1; index < rectangles.length; index++) {
+            const rectangle = rectangles[index];
+            const checkbox = document.getElementById(`checkbox-${index}`);
 
-        if (checkbox.checked && !isRectangleEnhanced(rectangle)) {
-            allEnhancedSelected = false;  // Incorrect rectangle was selected
+            if (checkbox.checked && !isRectangleEnhanced(rectangle)) {
+                allEnhancedSelected = false;  // Incorrect rectangle was selected
+            }
+            if (!checkbox.checked && isRectangleEnhanced(rectangle)) {
+                allEnhancedSelected = false;  // Enhanced rectangle was not selected
+            }
         }
-        if (!checkbox.checked && isRectangleEnhanced(rectangle)) {
-            allEnhancedSelected = false;  // Enhanced rectangle was not selected
-        }
-    }
 
-    if (allEnhancedSelected) {
-        alert("Correct!");
-    } else {
-        alert("Wrong!");
+        if (allEnhancedSelected) {
+            alert("Correct!");
+        } else {
+            alert("Incorrect");
+        }
+        level++;
+        updateLevelCounter();
+        refreshNext();
     }
-    level++;
-    updateLevelCounter();
-    refreshNext();
-}
       
-        
-
+    
         two.update();
     </script>
 

@@ -15,12 +15,19 @@
   <script src="https://threejs.org/examples/fonts/helvetiker_regular.typeface.json"></script>
   <script>
     
+    
+    // Create a perspective camera with:
+    // - 45-degree field of view
+    // - aspect ratio based on the window's width and height
+    // - near clipping plane of 0.1
+    // - far clipping plane of 1000
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
     const renderer = new THREE.WebGLRenderer();
     renderer.setSize(window.innerWidth, window.innerHeight);
     document.body.appendChild(renderer.domElement);
 
+    // Declare variables for shapes
     let originalShape;
     let shape1;
     let shape2;
@@ -43,13 +50,17 @@
     addClickListener();
     displayQuestionNumber(); // Display the current question number
 
+
+    //Checks if all blocks of a shape are at least partially visible within the camera's frustum.
     function areAllBlocksVisible(shape, minVisibleFraction = 0.5) {
+      // Create a frustum object from the camera's current state.
       const frustum = new THREE.Frustum();
       frustum.setFromMatrix(new THREE.Matrix4().multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse));
 
       let visibleCount = 0;
       let totalBlocks = 0;
 
+      // Iterate over each child of the shape 
       for (let child of shape.children) {
           if (child instanceof THREE.Mesh) {
               totalBlocks++;
@@ -58,6 +69,7 @@
               const min = boundingBox.min;
               const max = boundingBox.max;
 
+              // Extract the 8 vertices (corners) of the bounding box.
               const vertices = [
                   new THREE.Vector3(min.x, min.y, min.z),
                   new THREE.Vector3(min.x, min.y, max.z),
@@ -70,12 +82,13 @@
               ];
               
               let insideCount = 0;
+              // Check how many vertices of the bounding box are inside the camera frustum.
               for (let vertex of vertices) {
                   if (frustum.containsPoint(vertex)) {
                       insideCount++;
                   }
               }
-              
+              // If the proportion of vertices inside the frustum exceeds the minVisibleFraction, the block is considered visible.
               if (insideCount / vertices.length >= minVisibleFraction) {
                   visibleCount++;
               }
@@ -84,30 +97,35 @@
 
     console.log("Visible blocks: ", visibleCount, "/", totalBlocks);
     return visibleCount === totalBlocks;
-}
+  }
 
-function euclideanDistance(p1, p2) {
-    return Math.sqrt((p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2 + (p1.z - p2.z) ** 2);
-}
-
-function maxVertexDistance(shape1, shape2) {
-    let maxDist = 0;
-    if (!shape1 || !shape1.vertices || !shape2 || !shape2.vertices) {
-        return 0;
+    //Computes the Euclidean distance between two 3D points.
+    function euclideanDistance(p1, p2) {
+        return Math.sqrt((p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2 + (p1.z - p2.z) ** 2);
     }
 
-    for(let i = 0; i < shape1.children.length; i++) {
-        let vertex1 = shape1.children[i].position;
-        let vertex2 = shape2.children[i].position;
-
-        let dist = euclideanDistance(vertex1, vertex2);
-        if(dist > maxDist) {
-            maxDist = dist;
+    //Computes the maximum vertex distance between two shapes.
+    function maxVertexDistance(shape1, shape2) {
+        let maxDist = 0;
+        if (!shape1 || !shape1.vertices || !shape2 || !shape2.vertices) {
+            return 0;
         }
+
+        //Compute the distance between corresponding vertices and keep track of the maximum distance.
+        for(let i = 0; i < shape1.children.length; i++) {
+            let vertex1 = shape1.children[i].position;
+            let vertex2 = shape2.children[i].position;
+
+            let dist = euclideanDistance(vertex1, vertex2);
+            if(dist > maxDist) {
+                maxDist = dist;
+            }
+        }
+
+        return maxDist;
     }
 
-    return maxDist;
-}
+    //Displays the current question number in the 3D scene.
 
     function displayQuestionNumber() {
         if (questionTextMesh) {
@@ -131,6 +149,8 @@ function maxVertexDistance(shape1, shape2) {
         });
     }
 
+
+    //Displays feedback to the user in the 3D scene.
     function displayFeedback(message) {
         if (feedbackTextMesh) {
             scene.remove(feedbackTextMesh);
@@ -154,53 +174,55 @@ function maxVertexDistance(shape1, shape2) {
     }
 
     function onDocumentClick(event) {
-    document.removeEventListener('click', onDocumentClick, false);
+        document.removeEventListener('click', onDocumentClick, false);
 
-    const raycaster = new THREE.Raycaster();
-    const mouse = new THREE.Vector2();
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
 
-    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+        mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
-    raycaster.setFromCamera(mouse, camera);
+        raycaster.setFromCamera(mouse, camera);
 
-    const intersects = raycaster.intersectObjects(scene.children, true);
+        const intersects = raycaster.intersectObjects(scene.children, true);
 
-    if (intersects.length > 0) {
-        let selectedShape = intersects[0].object;
+        if (intersects.length > 0) {
+            let selectedShape = intersects[0].object;
 
-        while (selectedShape.parent !== scene) {
-            selectedShape = selectedShape.parent;
+            while (selectedShape.parent !== scene) {
+                selectedShape = selectedShape.parent;
+            }
+
+            if (selectedShape.userData.id !== 'original' && !selectedShapes.includes(selectedShape.userData.id)) {
+                selectedShapes.push(selectedShape.userData.id);
+                selectedShape.children.forEach(child => child.material.color.setHex(0x00ff00));
+            }
         }
 
-        if (selectedShape.userData.id !== 'original' && !selectedShapes.includes(selectedShape.userData.id)) {
-            selectedShapes.push(selectedShape.userData.id);
-            selectedShape.children.forEach(child => child.material.color.setHex(0x00ff00));
-        }
-    }
+        if (selectedShapes.length === 2) {
+            questionCounter++; // Increment the question counter
+            displayQuestionNumber(); // Update the displayed question number
 
-    if (selectedShapes.length === 2) {
-        questionCounter++; // Increment the question counter
-        displayQuestionNumber(); // Update the displayed question number
+            if (selectedShapes.every(id => correctShapes.includes(id))) {
+                displayFeedback('Correct shapes selected!');
+            } else {
+                displayFeedback('Incorrect selection. Try again!');
+            }
 
-        if (selectedShapes.every(id => correctShapes.includes(id))) {
-            displayFeedback('Correct shapes selected!');
+            createShapes();
+            addClickListener();
         } else {
-            displayFeedback('Incorrect selection. Try again!');
+            addClickListener();
         }
-
-        createShapes();
-        addClickListener();
-    } else {
-        addClickListener();
     }
-}
 
 
+    // Determines a rotational factor based on the current question number.
     function getRotationFactor() {
         return (questionCounter * 0.25) % Math.PI;
     }
 
+    // Gets a base rotation and adds a rotation factor to it.
     function getSetRotation() {
         const baseRotations = [0, Math.PI / 2, Math.PI, 3 * Math.PI / 2];
         const baseRotation = baseRotations[Math.floor(Math.random() * baseRotations.length)];
@@ -208,12 +230,12 @@ function maxVertexDistance(shape1, shape2) {
         return baseRotation + factor;
     }
 
-
-
+    // Adds a click listener to the document.
     function addClickListener() { 
       document.addEventListener('click', onDocumentClick, false);
     }
 
+    // Generates and adds shapes to the scene.
     function createShapes() {
       if (originalShape) {
         scene.remove(originalShape);
@@ -226,15 +248,17 @@ function maxVertexDistance(shape1, shape2) {
       }
       
    
-        
+        // Set the maximum attempts to clone a shape.
         const MAX_CLONE_ATTEMPTS = 50;
         let cloneAttempts = 0;
         let areClonesVisible = false;
 
+        // Try to generate visible clones until they are all visible or max attempts reached.
         while (!areClonesVisible && cloneAttempts < MAX_CLONE_ATTEMPTS) {
             originalShape = generateVisibleShape();
             originalShape.userData.id = 'original';
 
+            // Clone the original shape and set rotations.
             shape1 = originalShape.clone();
             shape1.rotation.set(getSetRotation(), getSetRotation(), getSetRotation());
             shape1.userData.id = 'clone1';
@@ -243,6 +267,7 @@ function maxVertexDistance(shape1, shape2) {
             shape2.rotation.set(getSetRotation(), getSetRotation(), getSetRotation());
             shape2.userData.id = 'clone2';
 
+            // Check if both clones are visible.
             if (areAllBlocksVisible(shape1) && areAllBlocksVisible(shape2)) {
                 areClonesVisible = true;
                 console.error("Clones visible");
@@ -255,6 +280,7 @@ function maxVertexDistance(shape1, shape2) {
             console.error("Max clone attempts reached. The clones might not be fully visible.");
         }
 
+        // Generate a new shape with a minimum distance threshold from the original.
         let shapeGenerated = false;
         const DISTANCE_THRESHOLD = 1.5;
         let maxAttempts = 5;
@@ -267,7 +293,6 @@ function maxVertexDistance(shape1, shape2) {
             }
         }
 
-
         shapeGenerated = false;
 
         for (let i = 0; i < maxAttempts; i++) {
@@ -279,17 +304,20 @@ function maxVertexDistance(shape1, shape2) {
             }
         }
 
-        correctShapes = ['clone1', 'clone2'];
+      // Define which shapes are the correct ones.
+      correctShapes = ['clone1', 'clone2'];
 
-
+      // Randomize the order of shapes.
       [shape1, shape2, shape3, shape4] = shuffle([shape1, shape2, shape3, shape4]);
 
+      // Set positions for each shape in the scene.
       originalShape.position.set(0, 5, 0);
       shape1.position.set(-15, -7, 0);
       shape2.position.set(-4, -7, 0);
       shape3.position.set(4, -7, 0);
       shape4.position.set(15, -7, 0);
 
+      // Add all the shapes to the scene. 
       scene.add(originalShape);
       scene.add(shape1);
       scene.add(shape2);
@@ -299,6 +327,7 @@ function maxVertexDistance(shape1, shape2) {
       renderer.render(scene, camera);
     }
 
+    // Generates a visible shape based on maximum attempts.
     function generateVisibleShape() {
         let shape;
         let attempts = 0;
@@ -316,7 +345,7 @@ function maxVertexDistance(shape1, shape2) {
         return shape;
     }
 
-
+    // * Creates a 3D block with visible edges.
     function createBlock(geometry, material, materialEdges) {
       const block = new THREE.Mesh(geometry, material);
       const blockEdges = new THREE.LineSegments(new THREE.EdgesGeometry(geometry), materialEdges);
@@ -324,6 +353,8 @@ function maxVertexDistance(shape1, shape2) {
       return block;
     }
 
+    //Creates a continuous shape made up of blocks. The blocks are colored in sequence 
+    //from the `colors` array and the shape rotates in different directions.
     function createContinuousShape() {
       const figure = new THREE.Object3D();
       const colors = [
@@ -341,25 +372,30 @@ function maxVertexDistance(shape1, shape2) {
         0x800080  // Purple
       ];
 
+      // Define possible rotation directions.
       const rotationDirections = ['x', 'y', 'z'];
 
+      // Initialize the starting position, direction of movement, rotation, and other parameters.
       let currentPosition = [0, 0, 0];
       let currentDirection = [1, 0, 0];
       let currentRotation = 'y';
       let straightStretch = Math.floor(Math.random() * 2) + 1;
       let numBlocks = Math.floor(Math.random() * 3) + 8;
 
+      // Loop to create each block in the figure.
       for (let i = 0; i < numBlocks; i++) {
         const geometry = new THREE.BoxGeometry(1, 1, 1);
         const material = new THREE.MeshBasicMaterial({ color: colors[i % colors.length]});
         const materialEdges = new THREE.LineBasicMaterial({ color: 0x000000 });
         const block = createBlock(geometry, material, materialEdges);
 
+        // Position the block and add it to the figure. 
         block.position.set(...currentPosition);
         figure.add(block);
 
         currentPosition = currentPosition.map((pos, index) => pos + currentDirection[index]);
 
+        // Check to change direction.
         if ((i+1) % straightStretch === 0) {
           currentRotation = rotationDirections[(rotationDirections.indexOf(currentRotation) + 1) % rotationDirections.length];
           currentDirection = rotateVector(currentDirection, currentRotation);
@@ -372,6 +408,7 @@ function maxVertexDistance(shape1, shape2) {
       return figure;
     }
 
+    //Rotates a vector in 3D space based on the specified axis.
     function rotateVector(vector, axis) {
       const rotationMatrix = {
         x: [[1, 0, 0], [0, 0, -1], [0, 1, 0]],
@@ -382,10 +419,13 @@ function maxVertexDistance(shape1, shape2) {
       return matrixMultiply(rotationMatrix[axis], vector);
     }
 
+    //Multiplies a 3x3 matrix with a 3D vector.
+
     function matrixMultiply(matrix, vector) {
       return matrix.map(row => row.reduce((sum, val, i) => sum + val * vector[i], 0));
     }
 
+    // Shuffles the array and returns the shuffled array.
     function shuffle(array) {
       var currentIndex = array.length, temporaryValue, randomIndex;
 

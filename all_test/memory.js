@@ -4,12 +4,12 @@ const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
-const cubeWidth = 0.7; // Adjust cube width to make it smaller
-const cubeHeight = 0.7; // Adjust cube height to make it smaller
+const cubeWidth = 0.7; // Adjust cube width 
+const cubeHeight = 0.7; // Adjust cube height 
 const gridSize = 7; // Increase grid size to 7x7
-const colors = [0x00ff00]; // Define some colors to use for highlighting the cubes
+const colors = [0x00ff00]; // Define some colour to use for highlighting the cubes
 
-let level = 1; // Initialize the level variable to 1
+let level = 1; // set the level variable to 1
 
 const cubes = []; // Store all the cubes in an array
 
@@ -71,7 +71,7 @@ function highlightCubes() {
       (validNextRow === previousRow && validNextCol === previousCol) || // Check if the next position is the same as the previous position
       validNextRow === previousRow || // Check if the next position is in the same row
       validNextCol === previousCol || // Check if the next position is in the same column
-      Math.abs(validNextRow - previousRow) <= 1 && Math.abs(validNextCol - previousCol) <= 1 // Check if the next position is around the previous position
+      Math.abs(validNextRow - previousRow) <= 1 && Math.abs(validNextCol - previousCol) <= 1 // Check if the position is diagonal
     );
 
     const cubeIndex = validNextRow * gridSize + validNextCol;
